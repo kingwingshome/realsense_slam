@@ -179,6 +179,33 @@ class VisualSLAM:
         
         return points_3d.T
     
+    def check_for_motion(self, kp1: List, kp2: List, matches: List, threshold: float = 1.0) -> bool:
+        """
+        Check if there is significant motion based on average feature displacement
+        
+        Args:
+            kp1: Keypoints from previous frame
+            kp2: Keypoints from current frame
+            matches: Matched feature pairs
+            threshold: Pixel movement threshold (default: 1.0 pixel)
+            
+        Returns:
+            bool: True if motion is detected
+        """
+        if not matches:
+            return False
+            
+        # varied motion calculation
+        displacements = []
+        for m in matches:
+            pt1 = np.array(kp1[m.queryIdx].pt)
+            pt2 = np.array(kp2[m.trainIdx].pt)
+            dist = np.linalg.norm(pt2 - pt1)
+            displacements.append(dist)
+            
+        avg_disp = np.mean(displacements)
+        return avg_disp > threshold
+
     def process_frame(self, frame: np.ndarray, depth: np.ndarray = None) -> dict:
         """
         Process a new frame and update SLAM state
@@ -200,7 +227,8 @@ class VisualSLAM:
             'num_features': len(keypoints),
             'pose': self.pose.copy(),
             'tracking': False,
-            'keyframe_added': False
+            'keyframe_added': False,
+            'stationary': False
         }
         
         # First frame - initialize
@@ -221,11 +249,35 @@ class VisualSLAM:
             print(f"Frame {self.frame_count}: Lost tracking (only {len(matches)} matches)")
             self.is_tracking = False
             return result
+            
+        # [Fix] Check for significant motion before estimating pose
+        # If average feature movement is < 0.5 pixels, assume stationary
+        if not self.check_for_motion(self.prev_keypoints, keypoints, matches, threshold=0.5):
+            # Camera is stationary
+            result['tracking'] = True
+            result['stationary'] = True
+            # Update previous frame data but KEEP current pose
+            self.prev_frame = frame.copy()
+            self.prev_keypoints = keypoints
+            self.prev_descriptors = descriptors
+            return result
         
         # Estimate pose
         T = self.estimate_pose(self.prev_keypoints, keypoints, matches)
         
         if T is not None:
+            # [Fix] Filter out very small translations (noise)
+            translation_norm = np.linalg.norm(T[:3, 3])
+            
+            # Threshold: 1mm movement
+            if translation_norm < 0.001:
+                result['tracking'] = True
+                result['stationary'] = True
+                self.prev_frame = frame.copy()
+                self.prev_keypoints = keypoints
+                self.prev_descriptors = descriptors
+                return result
+
             # Update pose
             self.pose = self.pose @ np.linalg.inv(T)
             result['pose'] = self.pose.copy()
@@ -252,8 +304,10 @@ class VisualSLAM:
                 result['keyframe_added'] = True
                 print(f"Frame {self.frame_count}: Keyframe added ({len(self.keyframes)} total)")
             
-            print(f"Frame {self.frame_count}: Tracking ({len(matches)} matches, "
-                  f"pose: {self.pose[:3, 3].round(3)})")
+            # Reduce logging frequency
+            if self.frame_count % 30 == 0:
+                 print(f"Frame {self.frame_count}: Tracking ({len(matches)} matches, "
+                       f"pos: {self.pose[:3, 3].round(3)})")
         else:
             print(f"Frame {self.frame_count}: Pose estimation failed")
             self.is_tracking = False

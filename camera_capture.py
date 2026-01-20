@@ -6,6 +6,7 @@ Captures RGB-D data from Intel RealSense D455 camera
 import pyrealsense2 as rs
 import numpy as np
 import cv2
+import time
 
 
 class RealSenseD455:
@@ -39,6 +40,10 @@ class RealSenseD455:
             self.config.enable_stream(rs.stream.color, self.width, self.height, rs.format.bgr8, self.fps)
             self.config.enable_stream(rs.stream.depth, self.width, self.height, rs.format.z16, self.fps)
             
+            # Enable IMU streams
+            self.config.enable_stream(rs.stream.accel)
+            self.config.enable_stream(rs.stream.gyro)
+            
             # Start the pipeline
             profile = self.pipeline.start(self.config)
             
@@ -59,10 +64,10 @@ class RealSenseD455:
     
     def get_frame(self):
         """
-        Get aligned RGB and depth frames
+        Get aligned RGB and depth frames and IMU data
         
         Returns:
-            tuple: (color_image, depth_image, depth_colormap) or (None, None, None) if failed
+            tuple: (color_image, depth_image, depth_colormap, accel, gyro, timestamp)
         """
         try:
             # Wait for frames
@@ -75,8 +80,12 @@ class RealSenseD455:
             color_frame = aligned_frames.get_color_frame()
             depth_frame = aligned_frames.get_depth_frame()
             
+            # Get IMU frames
+            accel_frame = frames.first_or_default(rs.stream.accel)
+            gyro_frame = frames.first_or_default(rs.stream.gyro)
+            
             if not color_frame or not depth_frame:
-                return None, None, None
+                return None, None, None, None, None, 0
             
             # Convert frames to numpy arrays
             color_image = np.asanyarray(color_frame.get_data())
@@ -91,11 +100,24 @@ class RealSenseD455:
                 cv2.COLORMAP_JET
             )
             
-            return color_image, depth_image, depth_colormap
+            # Get IMU data
+            accel_data = None
+            if accel_frame:
+                accel = accel_frame.as_motion_frame().get_motion_data()
+                accel_data = np.array([accel.x, accel.y, accel.z])
+                
+            gyro_data = None
+            if gyro_frame:
+                gyro = gyro_frame.as_motion_frame().get_motion_data()
+                gyro_data = np.array([gyro.x, gyro.y, gyro.z])
+            
+            timestamp = frames.get_timestamp() / 1000.0 if frames else time.time()
+            
+            return color_image, depth_image, depth_colormap, accel_data, gyro_data, timestamp
             
         except Exception as e:
             print(f"Error getting frame: {e}")
-            return None, None, None
+            return None, None, None, None, None, 0
     
     def get_camera_intrinsics(self):
         """
@@ -142,7 +164,7 @@ if __name__ == "__main__":
         print("Press 'q' to quit")
         
         while True:
-            color, depth, depth_colormap = camera.get_frame()
+            color, depth, depth_colormap, accel, gyro, timestamp = camera.get_frame()
             
             if color is not None and depth is not None:
                 # Display images
@@ -153,6 +175,12 @@ if __name__ == "__main__":
                 h, w = depth.shape
                 center_depth = depth[h//2, w//2]
                 print(f"Center depth: {center_depth:.3f}m", end='\r')
+                
+                if accel is not None:
+                    print(f"Accel: {accel}", end='\r')
+                
+                if gyro is not None:
+                    print(f"Gyro: {gyro}", end='\r')
                 
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break

@@ -44,12 +44,21 @@ class TrajectoryReplayer:
         """Load trajectory data from file"""
         try:
             # Load trajectory
-            self.trajectory = np.loadtxt(self.trajectory_file)
+            try:
+                self.trajectory = np.loadtxt(self.trajectory_file)
+            except ValueError:
+                print("Warning: Failed to load with default settings, trying to skip header...")
+                self.trajectory = np.loadtxt(self.trajectory_file, skiprows=1)
+
             print(f"Loaded {len(self.trajectory)} trajectory points from {self.trajectory_file}")
             
             # Load timestamps if provided
             if self.timestamps_file and os.path.exists(self.timestamps_file):
-                data = np.loadtxt(self.timestamps_file)
+                try:
+                    data = np.loadtxt(self.timestamps_file)
+                except ValueError:
+                    data = np.loadtxt(self.timestamps_file, skiprows=1)
+                
                 self.timestamps = data[:, 0]
                 self.trajectory = data[:, 1:]  # x, y, z
                 print(f"Loaded {len(self.timestamps)} timestamps from {self.timestamps_file}")
@@ -353,7 +362,7 @@ Examples:
                        help='Path to timestamps file (optional)')
     parser.add_argument('--animate', action='store_true',
                        help='Animate trajectory playback')
-    parser.add_argument('--2d', action='store_true',
+    parser.add_argument('--2d', action='store_true', dest='plot_2d',
                        help='Show 2D projections')
     parser.add_argument('--interval', type=int, default=50,
                        help='Animation interval in milliseconds (default: 50)')
@@ -387,7 +396,7 @@ Examples:
         replayer.export_to_kitti(args.export_kitti)
     elif args.export_tum:
         replayer.export_to_tum(args.export_tum)
-    elif args._2d:
+    elif args.plot_2d:
         replayer.plot_2d_projections(save_path=args.save_plot)
     else:
         replayer.plot_trajectory(save_path=args.save_plot)
