@@ -66,11 +66,12 @@ class RealSenseSLAMApp:
             return False
         
         print(f"   Camera intrinsics:")
-        print(f"   - fx: {intrinsics['fx']:.2f}")
-        print(f"   - fy: {intrinsics['fy']:.2f}")
-        print(f"   - cx: {intrinsics['cx']:.2f}")
-        print(f"   - cy: {intrinsics['cy']:.2f}")
-        print(f"   - depth_scale: {intrinsics['depth_scale']:.6f}")
+        # print(f"   - fx: {intrinsics['fx']:.2f}")
+        # print(f"   - fy: {intrinsics['fy']:.2f}")
+        # print(f"   - cx: {intrinsics['cx']:.2f}")
+        # print(f"   - cy: {intrinsics['cy']:.2f}")
+        # print(f"   - depth_scale: {intrinsics['depth_scale']:.6f}")
+        print(intrinsics)
         
         # Initialize SLAM
         print("\n[2/2] Initializing Visual SLAM system...")
@@ -382,9 +383,9 @@ Examples:
         """
     )
     
-    parser.add_argument('--width', type=int, default=640,
+    parser.add_argument('--width', type=int, default=1280,
                        help='Image width (default: 640)')
-    parser.add_argument('--height', type=int, default=480,
+    parser.add_argument('--height', type=int, default=720,
                        help='Image height (default: 480)')
     parser.add_argument('--fps', type=int, default=30,
                        help='Frames per second (default: 30)')

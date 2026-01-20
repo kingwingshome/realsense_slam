@@ -158,7 +158,7 @@ class RealSenseD455:
 
 if __name__ == "__main__":
     # Test the camera
-    camera = RealSenseD455(width=640, height=480, fps=30)
+    camera = RealSenseD455(width=1280, height=720, fps=30)
     
     if camera.initialize():
         print("Press 'q' to quit")
