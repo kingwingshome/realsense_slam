@@ -1,0 +1,20 @@
+# RealSense D455 Visual SLAM - Python Dependencies
+
+# Intel RealSense SDK
+pyrealsense2>=2.54.0
+
+# Computer Vision
+opencv-python>=4.8.0
+opencv-contrib-python>=4.8.0
+
+# Numerical Computing
+numpy>=1.24.0
+
+# Configuration (optional, for YAML config support)
+pyyaml>=6.0
+
+# Visualization (optional)
+matplotlib>=3.7.0
+
+# Logging (optional)
+colorlog>=6.7.0

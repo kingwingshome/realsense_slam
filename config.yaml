@@ -1,0 +1,59 @@
+# RealSense D455 Visual SLAM Configuration File
+
+# Camera Settings
+camera:
+  width: 640
+  height: 480
+  fps: 30
+  # Preset modes: 'custom', 'high_density', 'high_accuracy', 'medium_density'
+  preset: 'custom'
+
+# SLAM Settings
+slam:
+  # Feature extraction
+  orb:
+    nfeatures: 2000        # Number of features to extract
+    scale_factor: 1.2      # Pyramid decimation ratio
+    nlevels: 8             # Number of pyramid levels
+    edge_threshold: 31      # Size of the border where features are rejected
+    first_level: 0         # Level of pyramid to put source image
+    wta_k: 2               # Number of points that produce each oriented BRIEF descriptor
+    score_type: 'FAST'     # Score type: 'HARRIS' or 'FAST'
+    patch_size: 31         # Size of patch for brief descriptor
+    fast_threshold: 20     # FAST threshold
+  
+  # Feature matching
+  matching:
+    ratio_threshold: 0.7   # Lowe's ratio test threshold
+    min_matches: 10        # Minimum number of matches for tracking
+  
+  # Pose estimation
+  pose:
+    ransac_prob: 0.999     # RANSAC probability
+    ransac_threshold: 1.0  # RANSAC threshold in pixels
+  
+  # Keyframe selection
+  keyframe:
+    max_matches: 100       # Maximum matches before adding keyframe
+    min_keyframes: 5       # Minimum keyframes before loop closure
+
+# Visualization Settings
+visualization:
+  show_depth: false
+  show_features: true
+  show_trajectory: true
+  feature_color: [0, 255, 0]  # Green (BGR format)
+  trajectory_color: [255, 0, 0]  # Blue (BGR format)
+
+# Output Settings
+output:
+  directory: 'output'
+  save_trajectory: true
+  save_keyframes: false
+  trajectory_format: 'txt'  # 'txt' or 'csv'
+
+# Logging Settings
+logging:
+  level: 'INFO'  # 'DEBUG', 'INFO', 'WARNING', 'ERROR'
+  save_logs: true
+  log_file: 'slam.log'
